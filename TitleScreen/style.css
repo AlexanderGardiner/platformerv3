@@ -1,0 +1,30 @@
+
+
+.PlayButton {
+  position:absolute;
+  display : flex;
+  align-items : center;
+  margin: auto;
+  height:13%;
+  top: 30%; bottom: 0%; left: 0; right: 0;
+  border-radius: 12px;
+  padding: 5% 13%;
+  background-color: #919191;
+}
+
+
+button:hover {
+  
+  background-color: #6e6e6e; /* Green */
+  
+}
+
+button {
+  text-align: center;
+  
+  font-size: 500%;
+}
+
+
+
+

@@ -1,0 +1,51 @@
+#viewCanvas {
+  image-rendering: pixelated;
+  border: 5px solid #000000;
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  margin:auto;
+}
+
+.sprite {
+  display: none;
+  visibility: hidden;
+}
+
+body {
+  touch-action: manipulation;
+  margin: 0; height: 100%; overflow: hidden;
+}
+
+table{
+  position: absolute;
+
+  left: 50%;
+  transform: translate(-50%, 0%);
+  align-content: center;
+
+  border:1px solid black;
+  border-collapse: collapse;
+  border-spacing: 0;
+
+  width: 20vw;
+  
+}
+th, td{
+  border: 1px solid #000;
+}
+
+.tablebutton {
+  padding: 10px 0px;
+
+	width:100%;
+  height:100%;
+
+  border: none;
+}
+
+#leveltableh1 {
+  text-align: center;
+}

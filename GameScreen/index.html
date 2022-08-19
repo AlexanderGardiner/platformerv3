@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>replit</title>
+    <link href="game.css" rel="stylesheet" type="text/css" />
+    
+  </head>
+  
+  <body onLoad="levelselect()">
+    <div id="game">
+      <h3 id="fps">FPS: </h3>
+      <canvas id="viewCanvas" width=1920 height=1080></canvas>
+      <div id="levelEdit">
+        <button type="button" onclick="togglePlaying()">Toggle Level Edit</button> 
+        <p id="sizeselectorvalue">Size: </p>
+        <input type="range" id="sizeselector" min="0" max="200" value="60" step="5">
+        <p id="typeselectorvalue">Size: </p>
+        <input type="range" id="typeselector" min="0" max="2" value="0" step="1">
+        <br>
+        <button type="button" onclick="undoPlacement()">Undo</button> 
+        <br>
+        <button type="button" onclick="uploadLevelToServerToggle()">Upload Level To Server</button> 
+        <br>
+        <input type="text" id="levelid" placeholder="Level ID">
+        <br>
+        <input type="text" id="levelspawnx" placeholder="Spawn X">
+        <br>
+        <input type="text" id="levelspawny" placeholder="Spawn Y">
+        
+      </div>
+    </div>
+
+    <div id = "leveltable">
+      <h1 id="leveltableh1">Levels</h1>
+    </div>
+
+    <script src="script.js"></script>
+    
+  </body>
+
+</html>
+
+
