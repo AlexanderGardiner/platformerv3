@@ -12,7 +12,9 @@ let playing = true;
 let undoLastPlacement = false;
 let playingJustStarted = false;
 let updateCounter = 0;
+let levelComplete = false;
 let uploadLevelToServer = false;
+let inputInputed = false;
 document.addEventListener('keydown', (event) => {
   if (event.key == "w") {
     jumpPressed = true;
@@ -25,6 +27,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key == "d") {
     rightPressed = true;
   }
+  inputInputed =true;
 }, false);
 
 document.addEventListener('keyup', (event) => {
@@ -95,7 +98,8 @@ class canvasManager {
     this.scaleFactor = 1;
     this.blockImages = [];
     this.addBlockImage("Block.png");
-    this.addBlockImage("lava-flow.jpg");
+    this.addBlockImage("Lava.png");
+    this.addBlockImage("checkpoint.jpg");
     this.addBlockImage("checkpoint.jpg");
 
   }
@@ -211,7 +215,7 @@ function uploadLevelToServerToggle() {
 function uploadLevel(level) {
   let tempLevel = [...level]
   let levelName = window.prompt("Input Level Name","Level Name");
-  let id= document.getElementById("levelid").value;
+  let id= 1;
   let spawnx = document.getElementById("levelspawnx").value;
   let spawny = document.getElementById("levelspawny").value;
   tempLevel.unshift({"id":parseInt(id),"spawnX":parseInt(spawnx),"spawnY":parseInt(spawny)})
@@ -299,6 +303,19 @@ function showList(data) {
     thead.appendChild(rows[i]);
   }
 
+  rows.push(document.createElement('tr'));
+  body.push(document.createElement('td'));
+  buttons.push(document.createElement("button"));
+  buttons[buttons.length-1].onclick = function() { requestLevel("BlankLevel"); listenForLevel() };
+  buttons[buttons.length-1].innerHTML = "Blank Level";
+  buttons[buttons.length-1].classList.add("tablebutton");
+  body[body.length-1].appendChild(buttons[buttons.length-1]);
+
+
+  rows[rows.length-1].appendChild(body[body.length-1]);
+
+  thead.appendChild(rows[rows.length-1]);
+
 
 
 
@@ -324,16 +341,22 @@ function start(selectedLevel) {
   levelManager = new levelManager();
   levelManager.loadLevel(selectedLevel)
   gameManager.time = 0;
+  
   player = new sprite("Player.png", new transform(10, 10, 40, 40))
   player.xVelocity = 0;
   player.yVelocity = 0;
 
+  player.coyoteTime = 0;
+  gameManager.speedrunTimer = 0;
+
+  playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY);
   setTimeout(function() {
     update(canvasManager, player, gameManager, levelManager);
   }, 300);
 }
 
 function update(canvasManager, player, gameManager, levelManager) {
+  // jump height inconsistent
   if (uploadLevelToServer) {
     uploadLevelToServer = false;
     uploadLevel(levelManager.levels[levelManager.selectedLevel].level)
@@ -342,22 +365,29 @@ function update(canvasManager, player, gameManager, levelManager) {
   document.getElementById("sizeselectorvalue").innerHTML=("Size: " +document.getElementById("sizeselector").value)
   document.getElementById("typeselectorvalue").innerHTML=("Type: " +document.getElementById("typeselector").value)
   if (playingJustStarted) {
+    gameManager.previousTime = performance.now();
     playingJustStarted = false;
     
   }
   canvasManager.ctx.clearRect(0, 0, canvasManager.canvas.width, canvasManager.canvas.height);
   let scaleFactor = canvasManager.scaleCanvas();
   canvasManager.ctx.imageSmoothingEnabled = false;
-  if (playing) {
+  if (playing && levelComplete!= true) {
     // play mode
-    gameManager.previousTime = gameManager.time;
+    
     gameManager.time = performance.now();
     gameManager.deltaTime = (gameManager.time - gameManager.previousTime) / 10;
     if (updateCounter%10==0) {
       document.getElementById("fps").innerHTML = "FPS: " + Math.round(1000/(gameManager.deltaTime*10))
     }
+    if (inputInputed && !levelComplete) {
+      gameManager.speedrunTimer += gameManager.deltaTime/100;
+    }
     
-    player = updatePositions(player, canvasManager.canvas, gameManager.deltaTime, gameManager.gravity, scaleFactor, levelManager);
+    document.getElementById("speedrunTimer").innerHTML = "Time: " + Math.round(gameManager.speedrunTimer*100)/100;
+
+
+    player = updatePositions(player, canvasManager.canvas, gameManager.deltaTime, gameManager.gravity, scaleFactor, levelManager, gameManager);
     for (let i = 0; i < levelManager.levels[levelManager.selectedLevel].level.length; i++) {
       canvasManager.drawBlock(levelManager.levels[levelManager.selectedLevel].level[i]);
     }
@@ -368,7 +398,6 @@ function update(canvasManager, player, gameManager, levelManager) {
     let rect = canvasManager.canvas.getBoundingClientRect();
     let blockSize = parseInt(document.getElementById("sizeselector").value);
     let visualBlockSize = blockSize * canvasManager.scaleFactor;
-    console.log(JSON.stringify(levelManager.levels[levelManager.selectedLevel].level))
     for (let i = 0; i < levelManager.levels[levelManager.selectedLevel].level.length; i++) {
       
       canvasManager.drawBlock(levelManager.levels[levelManager.selectedLevel].level[i]);
@@ -387,10 +416,14 @@ function update(canvasManager, player, gameManager, levelManager) {
     }
     if (mouseDown) {
       
-      
+      let blockData;
       let duplicateBlock = false;
-
-      let blockData = {"transform":new transform(Math.floor((1 / canvasManager.scaleFactor) * (mouseX - rect.left) / blockSize) * blockSize, Math.floor((1 / canvasManager.scaleFactor) * (canvasManager.canvas.height - (mouseY - rect.top)) / blockSize) * blockSize, blockSize, blockSize), "type": (document.getElementById("typeselector").value) };
+      if (document.getElementById("typeselector").value==1) {
+        blockData = {"transform":new transform(Math.floor((1 / canvasManager.scaleFactor) * (mouseX - rect.left) / blockSize) * blockSize, Math.floor((1 / canvasManager.scaleFactor) * (canvasManager.canvas.height - (mouseY - rect.top-2)) / blockSize) * blockSize, blockSize, blockSize-2), "type": (document.getElementById("typeselector").value) };
+      } else {
+        blockData = {"transform":new transform(Math.floor((1 / canvasManager.scaleFactor) * (mouseX - rect.left) / blockSize) * blockSize, Math.floor((1 / canvasManager.scaleFactor) * (canvasManager.canvas.height - (mouseY - rect.top)) / blockSize) * blockSize, blockSize, blockSize), "type": (document.getElementById("typeselector").value) };
+      }
+      
       
 
       for (let i = 0; i < levelManager.levels[levelManager.selectedLevel].level.length; i++) {
@@ -415,12 +448,18 @@ function update(canvasManager, player, gameManager, levelManager) {
   }
 
 
-
+  gameManager.previousTime = gameManager.time;
   window.requestAnimationFrame(function() {
     update(canvasManager, player, gameManager, levelManager);
   });
 }
 
+function levelFinished() {
+  levelComplete = true;
+  alert("Level Complete")
+  
+  
+}
 function restart(player, levelManager) {
   levelManager.levels[levelManager.selectedLevel].currentSpawnX = levelManager.levels[levelManager.selectedLevel].spawnX;
   levelManager.levels[levelManager.selectedLevel].currentSpawnY = levelManager.levels[levelManager.selectedLevel].spawnY;
@@ -440,7 +479,8 @@ function playerDeath(player, spawnX, spawnY) {
 
 
 
-function updatePositions(player, canvas, deltaTime, gravity, scaleFactor, levelManager) {
+function updatePositions(player, canvas, deltaTime, gravity, scaleFactor, levelManager, gameManager) {
+  
   //collision and move
   let loops = 50;
   let collisionTopBlocks = [];
@@ -491,66 +531,90 @@ function updatePositions(player, canvas, deltaTime, gravity, scaleFactor, levelM
     }
 
     for (let k = 0; k < collisionTopBlocks.length; k++) {
-      if (collisionTopBlocks[k].type == 0 && player.yVelocity < 0) {
-        player.yVelocity = 0;
+      if (!levelComplete) {
+        if (collisionTopBlocks[k].type == 0 && player.yVelocity < 0) {
+          player.yVelocity = 0;
+        }
+      
+        if (collisionTopBlocks[k].type == 1) {
+          player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
+      
+        }
+      
+        if (collisionTopBlocks[k].type == 2) {
+          levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionTopBlocks[k].transform.x + (collisionTopBlocks[k].transform.width / 2) - (player.transform.width / 2)
+          levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionTopBlocks[k].transform.y + (collisionTopBlocks[k].transform.height / 2) - (player.transform.height / 2)
+        }
+      
+        if (collisionTopBlocks[k].type==3) {
+          levelFinished();
+        }
       }
-
-      if (collisionTopBlocks[k].type == 1) {
-        player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
-
-      }
-
-      if (collisionTopBlocks[k].type == 2) {
-        levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionTopBlocks[k].transform.x + (collisionTopBlocks[k].transform.width / 2) - (player.transform.width / 2)
-        levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionTopBlocks[k].transform.y + (collisionTopBlocks[k].transform.height / 2) - (player.transform.height / 2)
-      }
+      
 
     }
 
     for (let k = 0; k < collisionBottomBlocks.length; k++) {
-      if (collisionBottomBlocks[k].type == 0 && player.yVelocity > 0) {
-        player.yVelocity = 0;
-      }
-
-      if (collisionBottomBlocks[k].type == 1) {
-        player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
-      }
-
-      if (collisionBottomBlocks[k].type == 2) {
-        levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionBottomBlocks[k].transform.x + (collisionBottomBlocks[k].transform.width / 2) - (player.transform.width / 2)
-        levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionBottomBlocks[k].transform.y + (collisionBottomBlocks[k].transform.height / 2) - (player.transform.height / 2)
+      if (!levelComplete) {
+        if (collisionBottomBlocks[k].type == 0 && player.yVelocity > 0) {
+          player.yVelocity = 0;
+        }
+  
+        if (collisionBottomBlocks[k].type == 1) {
+          player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
+        }
+  
+        if (collisionBottomBlocks[k].type == 2) {
+          levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionBottomBlocks[k].transform.x + (collisionBottomBlocks[k].transform.width / 2) - (player.transform.width / 2)
+          levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionBottomBlocks[k].transform.y + (collisionBottomBlocks[k].transform.height / 2) - (player.transform.height / 2)
+        }
+        if (collisionBottomBlocks[k].type==3) {
+          levelFinished();
+        }
       }
     }
 
 
 
     for (let k = 0; k < collisionLeftBlocks.length; k++) {
-      if (collisionLeftBlocks[k].type == 0 && player.xVelocity > 0) {
-        player.xVelocity = 0;
+      if (!levelComplete) {
+        if (collisionLeftBlocks[k].type == 0 && player.xVelocity > 0) {
+          player.xVelocity = 0;
+        }
+  
+        if (collisionLeftBlocks[k].type == 1) {
+          player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
+        }
+  
+        if (collisionLeftBlocks[k].type == 2) {
+          levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionLeftBlocks[k].transform.x + (collisionLeftBlocks[k].transform.width / 2) - (player.transform.width / 2)
+          levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionLeftBlocks[k].transform.y + (collisionLeftBlocks[k].transform.height / 2) - (player.transform.height / 2)
+        }
+  
+        if (collisionLeftBlocks[k].type==3) {
+          levelFinished();
+        }
       }
-
-      if (collisionLeftBlocks[k].type == 1) {
-        player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
-      }
-
-      if (collisionLeftBlocks[k].type == 2) {
-        levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionLeftBlocks[k].transform.x + (collisionLeftBlocks[k].transform.width / 2) - (player.transform.width / 2)
-        levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionLeftBlocks[k].transform.y + (collisionLeftBlocks[k].transform.height / 2) - (player.transform.height / 2)
-      }
+      
     }
 
     for (let k = 0; k < collisionRightBlocks.length; k++) {
-      if (collisionRightBlocks[k].type == 0 && player.xVelocity < 0) {
-        player.xVelocity = 0;
-      }
-
-      if (collisionRightBlocks[k].type == 1) {
-        player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
-      }
-
-      if (collisionRightBlocks[k].type == 2) {
-        levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionRightBlocks[k].transform.x + (collisionRightBlocks[k].transform.width / 2) - (player.transform.width / 2)
-        levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionRightBlocks[k].transform.y + (collisionRightBlocks[k].transform.height / 2) - (player.transform.height / 2)
+      if (!levelComplete) {
+        if (collisionRightBlocks[k].type == 0 && player.xVelocity < 0) {
+          player.xVelocity = 0;
+        }
+  
+        if (collisionRightBlocks[k].type == 1) {
+          player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
+        }
+  
+        if (collisionRightBlocks[k].type == 2) {
+          levelManager.levels[levelManager.selectedLevel].currentSpawnX = collisionRightBlocks[k].transform.x + (collisionRightBlocks[k].transform.width / 2) - (player.transform.width / 2)
+          levelManager.levels[levelManager.selectedLevel].currentSpawnY = collisionRightBlocks[k].transform.y + (collisionRightBlocks[k].transform.height / 2) - (player.transform.height / 2)
+        }
+        if (collisionRightBlocks[k].type==3) {
+          levelFinished();
+        }
       }
     }
     player.transform.x += deltaTime *player.xVelocity / loops;
@@ -559,13 +623,18 @@ function updatePositions(player, canvas, deltaTime, gravity, scaleFactor, levelM
 
   }
 
-  player.yVelocity -= gravity * deltaTime;
+  player.yVelocity -= gameManager.gravity * deltaTime;
 
   //manage input
-  if (jumpPressed && (collisionTopBlocks.length > 0 || collisionWithCanvasResult.hitBottom == true)) {
-
+  if ((collisionTopBlocks.length > 0 || collisionWithCanvasResult.hitBottom == true)) {
+    player.coyoteTime = 2;
+  } else {
+    player.coyoteTime -= 0.2*gameManager.deltaTime;
+  }
+  
+  if (player.coyoteTime > 0 && jumpPressed) {
     jumpPressed = false;
-    player.yVelocity = 8.1;
+    player.yVelocity = 8.5
   }
 
   if (rightPressed) {

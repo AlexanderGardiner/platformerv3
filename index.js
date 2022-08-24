@@ -45,10 +45,15 @@ app.post('/',function(req,res){
     if (req.body.query=="uploadlevel") {
 
       try {  
-        fs.writeFileSync("./levels/"+req.body.levelname, JSON.stringify(req.body.leveldata));
-        console.log("File Written")
-        res.header('Access-Control-Allow-Origin', '*');
-        res.send({"text":"File Written"});
+        if (!fs.existsSync("./levels/"+req.body.levelname)) {
+          fs.writeFileSync("./levels/"+req.body.levelname, JSON.stringify(req.body.leveldata));
+          console.log("File Written")
+          res.header('Access-Control-Allow-Origin', '*');
+          res.send({"text":"File Written"});
+        } else {
+          res.send({"test":"File Exists"})
+        }
+        
       } catch(err) {
         console.log(err)
         res.send({"error":"There was an error"})

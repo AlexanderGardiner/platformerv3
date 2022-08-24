@@ -1,6 +1,0 @@
-[
-  {"id":1,"spawnX":0,"spawnY":0},
-  {"transform":{"x":100,"y":100,"width":100,"height":100},"type":0},
-  {"transform":{"x":200,"y":100,"width":100,"height":100},"type":1},
-  {"transform":{"x":400,"y":100,"width":100,"height":100},"type":2}
-]
