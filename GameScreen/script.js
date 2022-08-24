@@ -303,18 +303,7 @@ function showList(data) {
     thead.appendChild(rows[i]);
   }
 
-  rows.push(document.createElement('tr'));
-  body.push(document.createElement('td'));
-  buttons.push(document.createElement("button"));
-  buttons[buttons.length-1].onclick = function() { requestLevel("BlankLevel"); listenForLevel() };
-  buttons[buttons.length-1].innerHTML = "Blank Level";
-  buttons[buttons.length-1].classList.add("tablebutton");
-  body[body.length-1].appendChild(buttons[buttons.length-1]);
 
-
-  rows[rows.length-1].appendChild(body[body.length-1]);
-
-  thead.appendChild(rows[rows.length-1]);
 
 
 
@@ -372,6 +361,7 @@ function update(canvasManager, player, gameManager, levelManager) {
   canvasManager.ctx.clearRect(0, 0, canvasManager.canvas.width, canvasManager.canvas.height);
   let scaleFactor = canvasManager.scaleCanvas();
   canvasManager.ctx.imageSmoothingEnabled = false;
+  //keep playing after level complete
   if (playing && levelComplete!= true) {
     // play mode
     
@@ -633,6 +623,7 @@ function updatePositions(player, canvas, deltaTime, gravity, scaleFactor, levelM
   }
   
   if (player.coyoteTime > 0 && jumpPressed) {
+    player.coyoteTime = 0;
     jumpPressed = false;
     player.yVelocity = 8.5
   }
