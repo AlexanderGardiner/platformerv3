@@ -15,6 +15,7 @@ let updateCounter = 0;
 let levelComplete = false;
 let uploadLevelToServer = false;
 let inputInputed = false;
+let restartTriggered = false;
 document.addEventListener('keydown', (event) => {
   if (event.key == "w") {
     jumpPressed = true;
@@ -26,6 +27,10 @@ document.addEventListener('keydown', (event) => {
 
   if (event.key == "d") {
     rightPressed = true;
+  }
+
+  if (event.key == "r") {
+    restartTriggered = true;
   }
   inputInputed =true;
 }, false);
@@ -345,12 +350,14 @@ function start(selectedLevel) {
 }
 
 function update(canvasManager, player, gameManager, levelManager) {
-  // jump height inconsistent
+  updateCounter+=1;
   if (uploadLevelToServer) {
     uploadLevelToServer = false;
     uploadLevel(levelManager.levels[levelManager.selectedLevel].level)
   }
-  updateCounter+=1;
+
+  
+  
   document.getElementById("sizeselectorvalue").innerHTML=("Size: " +document.getElementById("sizeselector").value)
   document.getElementById("typeselectorvalue").innerHTML=("Type: " +document.getElementById("typeselector").value)
   if (playingJustStarted) {
@@ -361,10 +368,17 @@ function update(canvasManager, player, gameManager, levelManager) {
   canvasManager.ctx.clearRect(0, 0, canvasManager.canvas.width, canvasManager.canvas.height);
   let scaleFactor = canvasManager.scaleCanvas();
   canvasManager.ctx.imageSmoothingEnabled = false;
-  //keep playing after level complete
   if (playing && levelComplete!= true) {
     // play mode
-    
+    if(restartTriggered)
+    {
+      
+      restartTriggered = false;
+      let restarted = restart(player, levelManager, gameManager);
+      player=restarted[0];
+      levelManager=restarted[1];
+      gameManager=restarted[2];
+    }  
     gameManager.time = performance.now();
     gameManager.deltaTime = (gameManager.time - gameManager.previousTime) / 10;
     if (updateCounter%10==0) {
@@ -409,7 +423,8 @@ function update(canvasManager, player, gameManager, levelManager) {
       let blockData;
       let duplicateBlock = false;
       if (document.getElementById("typeselector").value==1) {
-        blockData = {"transform":new transform(Math.floor((1 / canvasManager.scaleFactor) * (mouseX - rect.left) / blockSize) * blockSize, Math.floor((1 / canvasManager.scaleFactor) * (canvasManager.canvas.height - (mouseY - rect.top-2)) / blockSize) * blockSize, blockSize, blockSize-2), "type": (document.getElementById("typeselector").value) };
+        let shrinkValue = 0.5;
+        blockData = {"transform":new transform((Math.floor((1 / canvasManager.scaleFactor) * (mouseX - rect.left) / blockSize) * blockSize)+(shrinkValue/2), (Math.floor((1 / canvasManager.scaleFactor) * (canvasManager.canvas.height - (mouseY - rect.top)) / blockSize) * blockSize)+(shrinkValue/2), blockSize-shrinkValue, blockSize-shrinkValue), "type": (document.getElementById("typeselector").value) };
       } else {
         blockData = {"transform":new transform(Math.floor((1 / canvasManager.scaleFactor) * (mouseX - rect.left) / blockSize) * blockSize, Math.floor((1 / canvasManager.scaleFactor) * (canvasManager.canvas.height - (mouseY - rect.top)) / blockSize) * blockSize, blockSize, blockSize), "type": (document.getElementById("typeselector").value) };
       }
@@ -450,12 +465,13 @@ function levelFinished() {
   
   
 }
-function restart(player, levelManager) {
+function restart(player, levelManager,gameManager) {
+  inputInputed = false;
   levelManager.levels[levelManager.selectedLevel].currentSpawnX = levelManager.levels[levelManager.selectedLevel].spawnX;
   levelManager.levels[levelManager.selectedLevel].currentSpawnY = levelManager.levels[levelManager.selectedLevel].spawnY;
   player = playerDeath(player, levelManager.levels[levelManager.selectedLevel].currentSpawnX, levelManager.levels[levelManager.selectedLevel].currentSpawnY)
-
-  return [player, levelManager]
+  gameManager.speedrunTimer = 0;
+  return [player, levelManager, gameManager]
 }
 
 function playerDeath(player, spawnX, spawnY) {
